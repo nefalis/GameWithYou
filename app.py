@@ -20,7 +20,6 @@ def main():
     st.set_page_config(page_title="Game With You")
     st.title("Game With You")
 
-    # Inject pastel rainbow CSS
     st.markdown("""
         <style>
         .rainbow-pastel-border {
