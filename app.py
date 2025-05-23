@@ -1,20 +1,30 @@
 import streamlit as st
-import json
+from supabase import create_client, Client
 import os
 
-DATA_DIR = "data"
-TICKETS_FILE = os.path.join(DATA_DIR, "tickets.json")
-EVENTS_FILE = os.path.join(DATA_DIR, "events.json")
+# Supabase client
+url = st.secrets["SUPABASE_URL"]
+key = st.secrets["SUPABASE_KEY"]
+supabase: Client = create_client(url, key)
 
-def load_data(file):
-    if not os.path.exists(file):
-        return []
-    with open(file, "r") as f:
-        return json.load(f)
+# Fonctions avec Supabase
+def load_tickets():
+    return supabase.table("tickets").select("*").execute().data
 
-def save_data(file, data):
-    with open(file, "w") as f:
-        json.dump(data, f, indent=2)
+def load_events():
+    return supabase.table("events").select("*").execute().data
+
+def save_ticket(ticket):
+    supabase.table("tickets").insert(ticket).execute()
+
+def save_event(event):
+    supabase.table("events").insert(event).execute()
+
+def delete_ticket(id_):
+    supabase.table("tickets").delete().eq("id", id_).execute()
+
+def delete_event(id_):
+    supabase.table("events").delete().eq("id", id_).execute()
 
 def main():
     st.set_page_config(page_title="Game With You")
@@ -45,12 +55,12 @@ def main():
     DISPOS = [f"{j} - {h}" for j in JOURS for h in HEURES]
 
     menu = st.radio("Navigation", ["Événements", "Tickets"], horizontal=True)
-    events = load_data(EVENTS_FILE)
-    tickets = load_data(TICKETS_FILE)
+    events = load_events()
+    tickets = load_tickets()
 
     if menu == "Événements":
         st.subheader("Événements à venir")
-        for i, e in enumerate(events):
+        for e in events:
             with st.container():
                 st.markdown(f"""
                     <div class="rainbow-pastel-border">
@@ -60,25 +70,9 @@ def main():
 
                 col1, col2 = st.columns(2)
                 with col1:
-                    if st.button(f"Supprimer {e['jeu']} ({i})"):
-                        events.pop(i)
-                        save_data(EVENTS_FILE, events)
+                    if st.button(f"Supprimer {e['jeu']}", key=f"delete_event_{e['id']}"):
+                        delete_event(e['id'])
                         st.rerun()
-                with col2:
-                    with st.expander(f"Modifier {e['jeu']}"):
-                        with st.form(f"edit_event_{i}"):
-                            new_jeu = st.text_input("Nom du jeu", value=e["jeu"], key=f"event_jeu_{i}")
-                            if e["date"] not in DISPOS:
-                                e["date"] = DISPOS[0]
-                            new_date = st.selectbox("Date + heure", DISPOS, index=DISPOS.index(e["date"]), key=f"event_date_{i}")
-                            new_participants = st.text_input("Participants ", value=", ".join(e["participants"]), key=f"event_part_{i}")
-                            if st.form_submit_button("Modifier l'événement"):
-                                e["jeu"] = new_jeu
-                                e["date"] = new_date
-                                e["participants"] = [p.strip() for p in new_participants.split(",") if p.strip()]
-                                save_data(EVENTS_FILE, events)
-                                st.success("Événement modifié.")
-                                st.rerun()
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
@@ -99,53 +93,31 @@ def main():
                         "jeu": jeu,
                         "dates": dates
                     }
-                    tickets.append(new_ticket)
-                    save_data(TICKETS_FILE, tickets)
+                    save_ticket(new_ticket)
                     st.success("Ticket créé !")
                     st.rerun()
 
         st.subheader("Tickets en attente")
-        for i, t in enumerate(tickets):
+        for t in tickets:
             with st.container():
                 st.markdown(f"""
                     <div class="rainbow-pastel-border">
                         <h5>{t['jeu']} par {t['pseudo']}</h5>
-                        <p><strong>Dispos proposées :</strong> {", ".join(t["dates"])}</p>
+                        <p><strong>Dispos proposées :</strong> {', '.join(t['dates'])}</p>
                 """, unsafe_allow_html=True)
 
                 col1, col2, col3 = st.columns(3)
-
-                # Supprimer
                 with col2:
-                    if st.button(f"Supprimer n°{i}", key=f"delete_{i}"):
-                        tickets.pop(i)
-                        save_data(TICKETS_FILE, tickets)
+                    if st.button(f"Supprimer n°{t['id']}", key=f"delete_ticket_{t['id']}"):
+                        delete_ticket(t['id'])
                         st.success("Ticket supprimé.")
                         st.rerun()
 
-                # Modifier
-                # with col3:
-                #     with st.expander("Modifier"):
-                #         with st.form(f"edit_ticket_{i}"):
-                #             new_pseudo = st.text_input("Ton pseudo", value=t["pseudo"], key=f"edit_pseudo_{i}")
-                #             new_jeu = st.text_input("Nom du jeu", value=t["jeu"], key=f"edit_jeu_{i}")
-                #             all_options = list(set(DISPOS + t["dates"]))
-                #             new_dates = st.multiselect("Dates + heures dispo", options=all_options, default=t["dates"], key=f"edit_dates_{i}")
-                #             if st.form_submit_button("Modifier le ticket"):
-                #                 t["pseudo"] = new_pseudo
-                #                 t["jeu"] = new_jeu
-                #                 t["dates"] = new_dates
-                #                 save_data(TICKETS_FILE, tickets)
-                #                 st.success("Ticket modifié.")
-                #                 st.rerun()
-
-                # Proposer session
                 with col1:
                     with st.expander("Proposer session"):
-                        with st.form(f"propose_session_{i}"):
-                            pseudo2 = st.text_input("Ton pseudo", key=f"join_pseudo_{i}")
-                            join_options = t["dates"]
-                            dates2 = st.multiselect("Choisis tes dispos communes", options=join_options, key=f"join_dates_{i}")
+                        with st.form(f"propose_session_{t['id']}"):
+                            pseudo2 = st.text_input("Ton pseudo", key=f"join_pseudo_{t['id']}")
+                            dates2 = st.multiselect("Choisis tes dispos communes", options=t['dates'], key=f"join_dates_{t['id']}")
                             submit_join = st.form_submit_button("Proposer une session")
 
                             if submit_join:
@@ -154,18 +126,16 @@ def main():
                                 elif not dates2:
                                     st.warning("Tu dois sélectionner au moins une date.")
                                 else:
-                                    communes = set(t["dates"]).intersection(dates2)
+                                    communes = set(t['dates']).intersection(dates2)
                                     if communes:
                                         new_event = {
-                                            "jeu": t["jeu"],
+                                            "jeu": t['jeu'],
                                             "date": list(communes)[0],
-                                            "createur": t["pseudo"],
-                                            "participants": [t["pseudo"], pseudo2]
+                                            "createur": t['pseudo'],
+                                            "participants": [t['pseudo'], pseudo2]
                                         }
-                                        events.append(new_event)
-                                        tickets.pop(i)
-                                        save_data(EVENTS_FILE, events)
-                                        save_data(TICKETS_FILE, tickets)
+                                        save_event(new_event)
+                                        delete_ticket(t['id'])
                                         st.success(f"Événement créé pour {new_event['date']} !")
                                         st.rerun()
                                     else:
@@ -174,5 +144,4 @@ def main():
                 st.markdown("</div>", unsafe_allow_html=True)
 
 if __name__ == "__main__":
-    os.makedirs(DATA_DIR, exist_ok=True)
     main()
