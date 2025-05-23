@@ -143,10 +143,12 @@ def main():
 
                 col1, col2 = st.columns(3)
                 with col2:
-                    if st.button(f"Supprimer n°{t['id']}", key=f"delete_ticket_{t['id']}"):
-                        delete_ticket(t['id'])
-                        st.success("Ticket supprimé.")
-                        st.rerun()
+                    with st.expander(f"Supprimer le ticket n°{t['id']}"):
+                        confirm = st.checkbox(f"Je confirme la suppression", key=f"confirm_ticket_{t['id']}")
+                        if confirm and st.button("Supprimer définitivement", key=f"delete_ticket_btn_{t['id']}"):
+                            delete_ticket(t['id'])
+                            st.success("Ticket supprimé.")
+                            st.rerun()
 
                 with col1:
                     with st.expander("Proposer session"):
