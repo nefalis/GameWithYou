@@ -111,13 +111,13 @@ def main():
 
                 st.markdown("</div>", unsafe_allow_html=True)
 
-    elif menu == "Tickets":
-        st.subheader("Créer un ticket")
+    elif menu == "Demande de partie":
+        st.subheader("Créer une annonce")
         with st.form("create_ticket"):
             pseudo = st.text_input("Ton pseudo")
             jeu = st.text_input("Nom du jeu")
             dates_raw = st.text_area("Dates et horaires (une par ligne, ex: 22-05-Matin ou 22-05-18h)")
-            submitted = st.form_submit_button("Créer le ticket")
+            submitted = st.form_submit_button("Créer l'annonce'")
             if submitted:
                 dates = [d.strip() for d in dates_raw.split("\n") if d.strip()]
                 if not pseudo or not jeu or not dates:
@@ -129,10 +129,10 @@ def main():
                         "dates": dates
                     }
                     save_ticket(new_ticket)
-                    st.success("Ticket créé !")
+                    st.success("Demande de partie créé !")
                     st.rerun()
 
-        st.subheader("Tickets en attente")
+        st.subheader("Annonces en attente")
         for t in tickets:
             with st.container():
                 st.markdown(f"""
@@ -143,11 +143,11 @@ def main():
 
                 col1, col2, col3 = st.columns(3)
                 with col2:
-                    with st.expander(f"Supprimer le ticket n°{t['id']}"):
+                    with st.expander(f"Supprimer le demande n°{t['id']}"):
                         confirm = st.checkbox(f"Je confirme la suppression", key=f"confirm_ticket_{t['id']}")
                         if confirm and st.button("Supprimer définitivement", key=f"delete_ticket_btn_{t['id']}"):
                             delete_ticket(t['id'])
-                            st.success("Ticket supprimé.")
+                            st.success("Demande supprimé.")
                             st.rerun()
 
                 with col1:
