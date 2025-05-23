@@ -1,6 +1,7 @@
 import streamlit as st
 from supabase import create_client, Client
 import os
+import json
 
 # Supabase client
 url = st.secrets["SUPABASE_URL"]
@@ -15,6 +16,8 @@ def load_events():
     return supabase.table("events").select("*").execute().data
 
 def save_ticket(ticket):
+    print("DEBUG ticket to insert:", ticket)
+    ticket["dates"] = json.loads(json.dumps(ticket["dates"]))
     supabase.table("tickets").insert(ticket).execute()
 
 def save_event(event):
