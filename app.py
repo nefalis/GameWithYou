@@ -141,7 +141,7 @@ def main():
                         <p><strong>Dispos proposées :</strong> {', '.join(t['dates'])}</p>
                 """, unsafe_allow_html=True)
 
-                col1, col2 = st.columns(3)
+                col1, col2, col3 = st.columns(3)
                 with col2:
                     with st.expander(f"Supprimer le ticket n°{t['id']}"):
                         confirm = st.checkbox(f"Je confirme la suppression", key=f"confirm_ticket_{t['id']}")
