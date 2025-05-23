@@ -69,7 +69,7 @@ def main():
     HEURES = ["Matin", "Après-midi", "Soir", "18h"]
     DISPOS = [f"{j} - {h}" for j in JOURS for h in HEURES]
 
-    menu = st.radio("Navigation", ["Événements", "Tickets"], horizontal=True)
+    menu = st.radio("Navigation", ["Événements", "Demande de partie"], horizontal=True)
     events = load_events()
     tickets = load_tickets()
 
